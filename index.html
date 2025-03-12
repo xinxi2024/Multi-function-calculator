@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多功能计算器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .calculator {
+            width: 100%;
+            max-width: 400px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .modes {
+            display: flex;
+            background-color: #333;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            outline: none;
+        }
+        
+        .mode-btn.active {
+            background-color: #555;
+            font-weight: bold;
+        }
+        
+        .display {
+            padding: 20px;
+            text-align: right;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .previous-operand {
+            color: #777;
+            font-size: 16px;
+            min-height: 24px;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        .current-operand {
+            color: #333;
+            font-size: 32px;
+            min-height: 48px;
+            word-wrap: break-word;
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background-color: #ddd;
+        }
+        
+        .btn {
+            padding: 16px;
+            font-size: 18px;
+            border: none;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .btn.operation {
+            background-color: #f0f0f0;
+        }
+        
+        .btn.equals {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn.clear, .btn.delete {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .date-input-group {
+            margin-bottom: 10px;
+        }
+        
+        .date-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .date-input-group input, .date-input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .date-result {
+            padding: 10px;
+            margin: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 16px;
+            min-height: 40px;
+        }
+        
+        .date-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .date-btn {
+            padding: 10px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .programmer-radix {
+            display: flex;
+            margin: 10px;
+            gap: 5px;
+        }
+        
+        .programmer-radix label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .bit-display {
+            padding: 10px;
+            margin: 10px;
+            font-family: monospace;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+            word-break: break-all;
+        }
+        
+        .bit-length {
+            display: flex;
+            margin: 10px;
+            gap: 5px;
+        }
+        
+        .bit-length label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="modes">
+            <button class="mode-btn active" data-mode="standard">标准</button>
+            <button class="mode-btn" data-mode="programmer">程序员</button>
+            <button class="mode-btn" data-mode="date">日期计算</button>
+        </div>
+        
+        <!-- 标准计算器 -->
+        <div class="calculator-mode" id="standard-mode">
+            <div class="display">
+                <div class="previous-operand"></div>
+                <div class="current-operand">0</div>
+            </div>
+            <div class="buttons">
+                <button class="btn clear">AC</button>
+                <button class="btn delete">DEL</button>
+                <button class="btn operation">%</button>
+                <button class="btn operation">÷</button>
+                <button class="btn number">7</button>
+                <button class="btn number">8</button>
+                <button class="btn number">9</button>
+                <button class="btn operation">×</button>
+                <button class="btn number">4</button>
+                <button class="btn number">5</button>
+                <button class="btn number">6</button>
+                <button class="btn operation">-</button>
+                <button class="btn number">1</button>
+                <button class="btn number">2</button>
+                <button class="btn number">3</button>
+                <button class="btn operation">+</button>
+                <button class="btn number">0</button>
+                <button class="btn number">.</button>
+                <button class="btn operation">^</button>
+                <button class="btn equals">=</button>
+            </div>
+        </div>
+        
+        <!-- 程序员计算器 -->
+        <div class="calculator-mode hidden" id="programmer-mode">
+            <div class="display">
+                <div class="previous-operand"></div>
+                <div class="current-operand">0</div>
+            </div>
+            <div class="programmer-radix">
+                <label><input type="radio" name="radix" value="16" checked> 十六进制</label>
+                <label><input type="radio" name="radix" value="10"> 十进制</label>
+                <label><input type="radio" name="radix" value="8"> 八进制</label>
+                <label><input type="radio" name="radix" value="2"> 二进制</label>
+            </div>
+            <div class="bit-length">
+                <label><input type="radio" name="bit-length" value="8"> 8位</label>
+                <label><input type="radio" name="bit-length" value="16"> 16位</label>
+                <label><input type="radio" name="bit-length" value="32" checked> 32位</label>
+                <label><input type="radio" name="bit-length" value="64"> 64位</label>
+            </div>
+            <div class="bit-display"></div>
+            <div class="buttons" id="programmer-buttons">
+                <button class="btn clear">AC</button>
+                <button class="btn delete">DEL</button>
+                <button class="btn operation">AND</button>
+                <button class="btn operation">OR</button>
+                <button class="btn hex">D</button>
+                <button class="btn hex">E</button>
+                <button class="btn hex">F</button>
+                <button class="btn operation">XOR</button>
+                <button class="btn hex">A</button>
+                <button class="btn hex">B</button>
+                <button class="btn hex">C</button>
+                <button class="btn operation">NOT</button>
+                <button class="btn number">7</button>
+                <button class="btn number">8</button>
+                <button class="btn number">9</button>
+                <button class="btn operation"><<</button>
+                <button class="btn number">4</button>
+                <button class="btn number">5</button>
+                <button class="btn number">6</button>
+                <button class="btn operation">>></button>
+                <button class="btn number">1</button>
+                <button class="btn number">2</button>
+                <button class="btn number">3</button>
+                <button class="btn operation">MOD</button>
+                <button class="btn number">0</button>
+                <button class="btn equals">=</button>
+            </div>
+        </div>
+        
+        <!-- 日期计算器 -->
+        <div class="calculator-mode hidden" id="date-mode">
+            <div class="date-inputs">
+                <div class="date-input-group">
+                    <label>第一个日期</label>
+                    <input type="date" id="date1" value="">
+                </div>
+                <div class="date-input-group">
+                    <label>第二个日期</label>
+                    <input type="date" id="date2" value="">
+                </div>
+            </div>
+            <div class="date-input-group">
+                <label>计算类型</label>
+                <select id="date-operation">
+                    <option value="diff">计算两个日期之间的天数</option>
+                    <option value="add">添加天数到日期</option>
+                    <option value="subtract">从日期减去天数</option>
+                </select>
+            </div>
+            <div class="date-input-group" id="days-group">
+                <label>天数</label>
+                <input type="number" id="days-value" value="0" min="0">
+            </div>
+            <div class="date-result" id="date-result">选择日期和操作</div>
+            <div class="date-buttons">
+                <button class="date-btn" id="calculate-date">计算</button>
+                <button class="date-btn" id="reset-date">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM元素
+            const modeBtns = document.querySelectorAll('.mode-btn');
+            const calculatorModes = document.querySelectorAll('.calculator-mode');
+            const previousOperandText = document.querySelectorAll('.previous-operand');
+            const currentOperandText = document.querySelectorAll('.current-operand');
+            
+            // 标准计算器变量
+            let firstOperand = '';
+            let secondOperand = '';
+            let currentOperation = null;
+            let shouldResetScreen = false;
+            let currentMode = 'standard';
+            
+            // 程序员计算器变量
+            let currentRadix = 16;
+            let bitLength = 32;
+            const bitDisplay = document.querySelector('.bit-display');
+            
+            // 设置当前日期为默认值
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('date1').value = formattedDate;
+            document.getElementById('date2').value = formattedDate;
+            
+            // 切换计算器模式
+            modeBtns.forEach(button => {
+                button.addEventListener('click', () => {
+                    const mode = button.getAttribute('data-mode');
+                    currentMode = mode;
+                    modeBtns.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    calculatorModes.forEach(calculatorMode => {
+                        calculatorMode.classList.add('hidden');
+                    });
+                    
+                    document.getElementById(`${mode}-mode`).classList.remove('hidden');
+                    
+                    if (mode === 'standard') {
+                        resetCalculator();
+                    } else if (mode === 'programmer') {
+                        resetProgrammerCalculator();
+                    } else if (mode === 'date') {
+                        updateDateCalculatorUI();
+                    }
+                });
+            });
+            
+            // 标准计算器按钮事件
+            document.querySelectorAll('#standard-mode .btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (button.classList.contains('number')) {
+                        inputNumber(button.textContent);
+                    } else if (button.classList.contains('operation')) {
+                        inputOperation(button.textContent);
+                    } else if (button.classList.contains('equals')) {
+                        evaluate();
+                    } else if (button.classList.contains('clear')) {
+                        resetCalculator();
+                    } else if (button.classList.contains('delete')) {
+                        deleteNumber();
+                    }
+                });
+            });
+            
+            // 程序员计算器按钮事件
+            document.querySelectorAll('#programmer-mode .btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (button.classList.contains('number') || button.classList.contains('hex')) {
+                        inputProgrammerNumber(button.textContent);
+                    } else if (button.classList.contains('operation')) {
+                        inputProgrammerOperation(button.textContent);
+                    } else if (button.classList.contains('equals')) {
+                        evaluateProgrammer();
+                    } else if (button.classList.contains('clear')) {
+                        resetProgrammerCalculator();
+                    } else if (button.classList.contains('delete')) {
+                        deleteProgrammerNumber();
+                    }
+                });
+            });
+            
+            // 进制选择事件
+            document.querySelectorAll('input[name="radix"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    currentRadix = parseInt(e.target.value);
+                    updateDisplay(currentMode);
+                    updateBitDisplay();
+                });
+            });
+            
+            // 位长选择事件
+            document.querySelectorAll('input[name="bit-length"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    bitLength = parseInt(e.target.value);
+                    updateBitDisplay();
+                });
+            });
+            
+            // 日期计算器事件
+            document.getElementById('date-operation').addEventListener('change', updateDateCalculatorUI);
+            document.getElementById('calculate-date').addEventListener('click', calculateDate);
+            document.getElementById('reset-date').addEventListener('click', resetDateCalculator);
+            
+            // 标准计算器函数
+            function resetCalculator() {
+                firstOperand = '';
+                secondOperand = '';
+                currentOperation = null;
+                previousOperandText[0].textContent = '';
+                currentOperandText[0].textContent = '0';
+                shouldResetScreen = false;
+            }
+            
+            function inputNumber(number) {
+                if (currentMode !== 'standard') return;
+                
+                if (currentOperandText[0].textContent === '0' || shouldResetScreen) {
+                    currentOperandText[0].textContent = number;
+                    shouldResetScreen = false;
+                } else {
+                    currentOperandText[0].textContent += number;
+                }
+            }
+            
+            function deleteNumber() {
+                if (currentMode !== 'standard') return;
+                
+                currentOperandText[0].textContent = currentOperandText[0].textContent.slice(0, -1);
+                if (currentOperandText[0].textContent === '') {
+                    currentOperandText[0].textContent = '0';
+                }
+            }
+            
+            function inputOperation(operation) {
+                if (currentMode !== 'standard') return;
+                
+                if (currentOperation !== null) evaluate();
+                firstOperand = currentOperandText[0].textContent;
+                currentOperation = operation;
+                previousOperandText[0].textContent = `${firstOperand} ${operation}`;
+                shouldResetScreen = true;
+            }
+            
+            function evaluate() {
+                if (currentMode !== 'standard') return;
+                
+                if (currentOperation === null) return;
+                
+                secondOperand = currentOperandText[0].textContent;
+                let result;
+                
+                switch (currentOperation) {
+                    case '+':
+                        result = parseFloat(firstOperand) + parseFloat(secondOperand);
+                        break;
+                    case '-':
+                        result = parseFloat(firstOperand) - parseFloat(secondOperand);
+                        break;
+                    case '×':
+                        result = parseFloat(firstOperand) * parseFloat(secondOperand);
+                        break;
+                    case '÷':
+                        result = parseFloat(firstOperand) / parseFloat(secondOperand);
+                        break;
+                    case '%':
+                        result = parseFloat(firstOperand) % parseFloat(secondOperand);
+                        break;
+                    case '^':
+                        result = Math.pow(parseFloat(firstOperand), parseFloat(secondOperand));
+                        break;
+                    default:
+                        return;
+                }
+                
+                currentOperandText[0].textContent = result;
+                previousOperandText[0].textContent = `${firstOperand} ${currentOperation} ${secondOperand} =`;
+                currentOperation = null;
+                shouldResetScreen = true;
+            }
+            
+            // 程序员计算器函数
+            function resetProgrammerCalculator() {
+                firstOperand = '';
+                secondOperand = '';
+                currentOperation = null;
+                previousOperandText[1].textContent = '';
+                currentOperandText[1].textContent = '0';
+                shouldResetScreen = false;
+                updateBitDisplay();
+            }
+            
+            function inputProgrammerNumber(number) {
+                if (currentMode !== 'programmer') return;
+                
+                // 限制输入基于当前进制
+                const validDigits = {
+                    2: /[0-1]/,
+                    8: /[0-7]/,
+                    10: /[0-9]/,
+                    16: /[0-9A-F]/i
+                };
+                
+                if (!validDigits[currentRadix].test(number)) return;
+                
+                if (currentOperandText[1].textContent === '0' || shouldResetScreen) {
+                    currentOperandText[1].textContent = number;
+                    shouldResetScreen = false;
+                } else {
+                    currentOperandText[1].textContent += number;
+                }
+                
+                updateBitDisplay();
+            }
+            
+            function deleteProgrammerNumber() {
+                if (currentMode !== 'programmer') return;
+                
+                currentOperandText[1].textContent = currentOperandText[1].textContent.slice(0, -1);
+                if (currentOperandText[1].textContent === '') {
+                    currentOperandText[1].textContent = '0';
+                }
+                
+                updateBitDisplay();
+            }
+            
+            function inputProgrammerOperation(operation) {
+                if (currentMode !== 'programmer') return;
+                
+                if (currentOperation !== null) evaluateProgrammer();
+                firstOperand = currentOperandText[1].textContent;
+                currentOperation = operation;
+                previousOperandText[1].textContent = `${firstOperand} ${operation}`;
+                shouldResetScreen = true;
+            }
+            
+            function evaluateProgrammer() {
+                if (currentMode !== 'programmer') return;
+                
+                if (currentOperation === null) return;
+                
+                secondOperand = currentOperandText[1].textContent;
+                
+                // 将操作数转换为十进制整数
+                const num1 = parseInt(firstOperand, currentRadix);
+                const num2 = parseInt(secondOperand, currentRadix);
+                
+                let result;
+                
+                switch (currentOperation) {
+                    case 'AND':
+                        result = num1 & num2;
+                        break;
+                    case 'OR':
+                        result = num1 | num2;
+                        break;
+                    case 'XOR':
+                        result = num1 ^ num2;
+                        break;
+                    case 'NOT':
+                        // 基于位长度的按位求反
+                        const mask = (1 << bitLength) - 1;
+                        result = (~num1) & mask;
+                        break;
+                    case '<<':
+                        result = num1 << num2;
+                        break;
+                    case '>>':
+                        result = num1 >> num2;
+                        break;
+                    case 'MOD':
+                        result = num1 % num2;
+                        break;
+                    default:
+                        return;
+                }
+                
+                // 根据位长度裁剪结果
+                const bitmask = (1n << BigInt(bitLength)) - 1n;
+                result = Number(BigInt(result) & bitmask);
+                
+                // 转换回当前进制并显示
+                currentOperandText[1].textContent = result.toString(currentRadix).toUpperCase();
+                previousOperandText[1].textContent = `${firstOperand} ${currentOperation} ${secondOperand} =`;
+                currentOperation = null;
+                shouldResetScreen = true;
+                updateBitDisplay();
+            }
+            
+            function updateBitDisplay() {
+                if (currentMode !== 'programmer') return;
+                
+                const decimalValue = parseInt(currentOperandText[1].textContent, currentRadix);
+                
+                // 二进制表示
+                let binaryStr = decimalValue.toString(2).padStart(bitLength, '0');
+                
+                // 格式化二进制显示，每4位一组
+                let formattedBinary = '';
+                for (let i = 0; i < binaryStr.length; i++) {
+                    formattedBinary += binaryStr[i];
+                    if ((i + 1) % 4 === 0 && i !== binaryStr.length - 1) {
+                        formattedBinary += ' ';
+                    }
+                }
+                
+                bitDisplay.textContent = formattedBinary;
+            }
+            
+            // 更新显示函数
+            function updateDisplay(mode) {
+                if (mode === 'programmer') {
+                    // 将当前值转换为十进制，然后再转换为目标进制
+                    const decimalValue = parseInt(currentOperandText[1].textContent, currentRadix);
+                    currentOperandText[1].textContent = decimalValue.toString(currentRadix).toUpperCase();
+                }
+            }
+            
+            // 日期计算器函数
+            function updateDateCalculatorUI() {
+                const operation = document.getElementById('date-operation').value;
+                const daysGroup = document.getElementById('days-group');
+                
+                if (operation === 'diff') {
+                    daysGroup.style.display = 'none';
+                } else {
+                    daysGroup.style.display = 'block';
+                }
+            }
+            
+            function calculateDate() {
+                const date1 = new Date(document.getElementById('date1').value);
+                const date2 = new Date(document.getElementById('date2').value);
+                const operation = document.getElementById('date-operation').value;
+                const daysValue = parseInt(document.getElementById('days-value').value);
+                const resultElement = document.getElementById('date-result');
+                
+                if (isNaN(date1.getTime()) || (operation !== 'diff' && isNaN(daysValue))) {
+                    resultElement.textContent = '请输入有效的日期和天数';
+                    return;
+                }
+                
+                let result;
+                
+                switch (operation) {
+                    case 'diff':
+                        if (isNaN(date2.getTime())) {
+                            resultElement.textContent = '请输入有效的第二个日期';
+                            return;
+                        }
+                        // 计算天数差异
+                        const diffTime = Math.abs(date2 - date1);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        result = `两个日期之间相差 ${diffDays} 天`;
+                        break;
+                    case 'add':
+                        // 添加天数
+                        const newDate = new Date(date1);
+                        newDate.setDate(date1.getDate() + daysValue);
+                        result = `${date1.toLocaleDateString()} 加上 ${daysValue} 天是 ${newDate.toLocaleDateString()}`;
+                        break;
+                    case 'subtract':
+                        // 减去天数
+                        const resultDate = new Date(date1);
+                        resultDate.setDate(date1.getDate() - daysValue);
+                        result = `${date1.toLocaleDateString()} 减去 ${daysValue} 天是 ${resultDate.toLocaleDateString()}`;
+                        break;
+                    default:
+                        result = '请选择计算类型';
+                }
+                
+                resultElement.textContent = result;
+            }
+            
+            function resetDateCalculator() {
+                document.getElementById('date1').value = formattedDate;
+                document.getElementById('date2').value = formattedDate;
+                document.getElementById('days-value').value = '0';
+                document.getElementById('date-result').textContent = '选择日期和操作';
+            }
+            
+            // 初始化
+            updateDateCalculatorUI();
+        });
+    </script>
+</body>
+</html>
