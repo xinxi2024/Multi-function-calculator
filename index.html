@@ -198,6 +198,66 @@
         .hidden {
             display: none !important;
         }
+
+        /* 新增数学模式样式 */
+        .math-inputs {
+            padding: 10px;
+        }
+
+        .math-input-group {
+            margin-bottom: 10px;
+        }
+
+        .math-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .math-input-group input, .math-input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .math-result {
+            padding: 10px;
+            margin: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 16px;
+            min-height: 60px;
+            word-wrap: break-word;
+        }
+
+        .math-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .math-btn {
+            padding: 10px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .coeff-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+
+        .abs-options {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -206,6 +266,7 @@
             <button class="mode-btn active" data-mode="standard">标准</button>
             <button class="mode-btn" data-mode="programmer">程序员</button>
             <button class="mode-btn" data-mode="date">日期计算</button>
+            <button class="mode-btn" data-mode="math">数学</button>
         </div>
         
         <!-- 标准计算器 -->
@@ -317,6 +378,92 @@
                 <button class="date-btn" id="reset-date">重置</button>
             </div>
         </div>
+
+        <!-- 数学模式 -->
+        <div class="calculator-mode hidden" id="math-mode">
+            <div class="math-inputs">
+                <div class="math-input-group">
+                    <label>计算类型</label>
+                    <select id="math-operation">
+                        <option value="quadratic-equation">解一元二次方程 (ax² + bx + c = 0)</option>
+                        <option value="quadratic-inequality">解一元二次不等式 (ax² + bx + c ? 0)</option>
+                        <option value="absolute-inequality">解绝对值不等式 (|expr| ? k)</option>
+                    </select>
+                </div>
+                <div class="math-input-group coeff-group" id="quadratic-coeffs">
+                    <div>
+                        <label>a</label>
+                        <input type="number" id="a-value" value="1">
+                    </div>
+                    <div>
+                        <label>b</label>
+                        <input type="number" id="b-value" value="0">
+                    </div>
+                    <div>
+                        <label>c</label>
+                        <input type="number" id="c-value" value="0">
+                    </div>
+                </div>
+                <div class="math-input-group" id="inequality-sign" style="display: none;">
+                    <label>不等号</label>
+                    <select id="ineq-sign">
+                        <option value=">">></option>
+                        <option value="<"><</option>
+                        <option value=">=">≥</option>
+                        <option value="<=">≤</option>
+                    </select>
+                </div>
+                <div class="math-input-group abs-options" id="abs-type" style="display: none;">
+                    <label>绝对值类型</label>
+                    <select id="abs-expr-type">
+                        <option value="linear">一元一次 (ax + b)</option>
+                        <option value="quadratic">一元二次 (ax² + bx + c)</option>
+                    </select>
+                </div>
+                <div class="math-input-group abs-options coeff-group" id="abs-linear-coeffs" style="display: none;">
+                    <div>
+                        <label>a</label>
+                        <input type="number" id="abs-a-linear" value="1">
+                    </div>
+                    <div>
+                        <label>b</label>
+                        <input type="number" id="abs-b-linear" value="0">
+                    </div>
+                </div>
+                <div class="math-input-group abs-options coeff-group" id="abs-quadratic-coeffs" style="display: none;">
+                    <div>
+                        <label>a</label>
+                        <input type="number" id="abs-a-quad" value="1">
+                    </div>
+                    <div>
+                        <label>b</label>
+                        <input type="number" id="abs-b-quad" value="0">
+                    </div>
+                    <div>
+                        <label>c</label>
+                        <input type="number" id="abs-c-quad" value="0">
+                    </div>
+                </div>
+                <div class="math-input-group abs-options" id="abs-ineq-sign" style="display: none;">
+                    <label>不等号</label>
+                    <select id="abs-ineq-sign">
+                        <option value=">">></option>
+                        <option value="<"><</option>
+                        <option value=">=">≥</option>
+                        <option value="<=">≤</option>
+                    </select>
+                </div>
+                <div class="math-input-group abs-options" id="abs-k-value" style="display: none;">
+                    <label>右边常数 k</label>
+                    <input type="number" id="k-value" value="0">
+                </div>
+            </div>
+            <div class="math-result" id="math-result">选择计算类型</div>
+            <div class="math-buttons">
+                <button class="math-btn" id="calculate-math">计算</button>
+                <button class="math-btn" id="reset-math">重置</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -365,6 +512,8 @@
                         resetProgrammerCalculator();
                     } else if (mode === 'date') {
                         updateDateCalculatorUI();
+                    } else if (mode === 'math') {
+                        updateMathCalculatorUI();
                     }
                 });
             });
@@ -424,6 +573,12 @@
             document.getElementById('date-operation').addEventListener('change', updateDateCalculatorUI);
             document.getElementById('calculate-date').addEventListener('click', calculateDate);
             document.getElementById('reset-date').addEventListener('click', resetDateCalculator);
+            
+            // 数学计算器事件
+            document.getElementById('math-operation').addEventListener('change', updateMathCalculatorUI);
+            document.getElementById('abs-expr-type').addEventListener('change', updateAbsUI);
+            document.getElementById('calculate-math').addEventListener('click', calculateMath);
+            document.getElementById('reset-math').addEventListener('click', resetMathCalculator);
             
             // 标准计算器函数
             function resetCalculator() {
@@ -702,8 +857,209 @@
                 document.getElementById('date-result').textContent = '选择日期和操作';
             }
             
+            // 数学计算器函数
+            function updateMathCalculatorUI() {
+                const operation = document.getElementById('math-operation').value;
+                const quadraticCoeffs = document.getElementById('quadratic-coeffs');
+                const inequalitySign = document.getElementById('inequality-sign');
+                const absOptions = document.querySelectorAll('.abs-options');
+                const resultElement = document.getElementById('math-result');
+
+                quadraticCoeffs.style.display = 'none';
+                inequalitySign.style.display = 'none';
+                absOptions.forEach(opt => opt.style.display = 'none');
+
+                if (operation === 'quadratic-equation' || operation === 'quadratic-inequality') {
+                    quadraticCoeffs.style.display = 'grid';
+                }
+
+                if (operation === 'quadratic-inequality') {
+                    inequalitySign.style.display = 'block';
+                }
+
+                if (operation === 'absolute-inequality') {
+                    absOptions.forEach(opt => opt.style.display = 'block');
+                    updateAbsUI();
+                }
+
+                resultElement.textContent = '输入参数并计算';
+            }
+
+            function updateAbsUI() {
+                const absType = document.getElementById('abs-expr-type').value;
+                document.getElementById('abs-linear-coeffs').style.display = absType === 'linear' ? 'grid' : 'none';
+                document.getElementById('abs-quadratic-coeffs').style.display = absType === 'quadratic' ? 'grid' : 'none';
+            }
+
+            function calculateMath() {
+                const operation = document.getElementById('math-operation').value;
+                const resultElement = document.getElementById('math-result');
+                let result = '';
+
+                if (operation === 'quadratic-equation') {
+                    const a = parseFloat(document.getElementById('a-value').value);
+                    const b = parseFloat(document.getElementById('b-value').value);
+                    const c = parseFloat(document.getElementById('c-value').value);
+
+                    if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) {
+                        result = '请输入有效的a, b, c (a ≠ 0)';
+                    } else {
+                        const discriminant = b * b - 4 * a * c;
+                        if (discriminant > 0) {
+                            const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                            const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                            result = `根: x1 = ${root1.toFixed(4)}, x2 = ${root2.toFixed(4)}`;
+                        } else if (discriminant === 0) {
+                            const root = -b / (2 * a);
+                            result = `根: x = ${root.toFixed(4)}`;
+                        } else {
+                            result = '无实根';
+                        }
+                    }
+                } else if (operation === 'quadratic-inequality') {
+                    const a = parseFloat(document.getElementById('a-value').value);
+                    const b = parseFloat(document.getElementById('b-value').value);
+                    const c = parseFloat(document.getElementById('c-value').value);
+                    const sign = document.getElementById('ineq-sign').value;
+
+                    if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) {
+                        result = '请输入有效的a, b, c (a ≠ 0)';
+                    } else {
+                        const discriminant = b * b - 4 * a * c;
+                        let roots = [];
+                        if (discriminant > 0) {
+                            roots[0] = (-b - Math.sqrt(discriminant)) / (2 * a);
+                            roots[1] = (-b + Math.sqrt(discriminant)) / (2 * a);
+                        } else if (discriminant === 0) {
+                            roots[0] = -b / (2 * a);
+                        } else {
+                            // 无实根，根据a符号
+                            if ((a > 0 && (sign === '>' || sign === '>=')) || (a < 0 && (sign === '<' || sign === '<='))) {
+                                result = '所有实数';
+                            } else {
+                                result = '无解';
+                            }
+                            resultElement.textContent = result;
+                            return;
+                        }
+
+                        roots.sort((x, y) => x - y);
+                        const isEqual = sign.includes('=');
+
+                        if (roots.length === 1) {
+                            // 单根
+                            if (sign === '>' || sign === '<') {
+                                if (a > 0) {
+                                    result = sign === '>' ? 'x ≠ ' + roots[0].toFixed(4) : '无解 (恒成立除根外)';
+                                } else {
+                                    result = sign === '<' ? 'x ≠ ' + roots[0].toFixed(4) : '无解 (恒成立除根外)';
+                                }
+                            } else {
+                                result = 'x = ' + roots[0].toFixed(4);
+                            }
+                        } else {
+                            // 双根
+                            const r1 = roots[0].toFixed(4);
+                            const r2 = roots[1].toFixed(4);
+                            if (a > 0) {
+                                if (sign === '>') {
+                                    result = `x < ${r1} 或 x > ${r2}`;
+                                } else if (sign === '<') {
+                                    result = `${r1} < x < ${r2}`;
+                                } else if (sign === '>=') {
+                                    result = `x ≤ ${r1} 或 x ≥ ${r2}`;
+                                } else if (sign === '<=') {
+                                    result = `${r1} ≤ x ≤ ${r2}`;
+                                }
+                            } else {
+                                if (sign === '>') {
+                                    result = `${r1} < x < ${r2}`;
+                                } else if (sign === '<') {
+                                    result = `x < ${r1} 或 x > ${r2}`;
+                                } else if (sign === '>=') {
+                                    result = `${r1} ≤ x ≤ ${r2}`;
+                                } else if (sign === '<=') {
+                                    result = `x ≤ ${r1} 或 x ≥ ${r2}`;
+                                }
+                            }
+                        }
+                    }
+                } else if (operation === 'absolute-inequality') {
+                    const absType = document.getElementById('abs-expr-type').value;
+                    const sign = document.getElementById('abs-ineq-sign').value;
+                    const k = parseFloat(document.getElementById('k-value').value);
+
+                    if (isNaN(k)) {
+                        result = '请输入有效的k';
+                        resultElement.textContent = result;
+                        return;
+                    }
+
+                    if (absType === 'linear') {
+                        const a = parseFloat(document.getElementById('abs-a-linear').value);
+                        const b = parseFloat(document.getElementById('abs-b-linear').value);
+
+                        if (isNaN(a) || isNaN(b) || a === 0) {
+                            result = '请输入有效的a, b (a ≠ 0)';
+                        } else {
+                            const root = -b / a;
+                            if (k < 0) {
+                                result = '无解 (绝对值 ≥ 0)';
+                            } else if (k === 0) {
+                                if (sign === '>' || sign === '<') {
+                                    result = sign === '>' ? `x ≠ ${root.toFixed(4)}` : '无解';
+                                } else {
+                                    result = sign === '>=' ? '所有实数' : `x = ${root.toFixed(4)}`;
+                                }
+                            } else {
+                                if (sign === '>') {
+                                    result = `x < ${ (root - k / a).toFixed(4) } 或 x > ${ (root + k / a).toFixed(4) }`;
+                                } else if (sign === '<') {
+                                    result = `${ (root - k / a).toFixed(4) } < x < ${ (root + k / a).toFixed(4) }`;
+                                } else if (sign === '>=') {
+                                    result = `x ≤ ${ (root - k / a).toFixed(4) } 或 x ≥ ${ (root + k / a).toFixed(4) }`;
+                                } else if (sign === '<=') {
+                                    result = `${ (root - k / a).toFixed(4) } ≤ x ≤ ${ (root + k / a).toFixed(4) }`;
+                                }
+                            }
+                        }
+                    } else if (absType === 'quadratic') {
+                        const a = parseFloat(document.getElementById('abs-a-quad').value);
+                        const b = parseFloat(document.getElementById('abs-b-quad').value);
+                        const c = parseFloat(document.getElementById('abs-c-quad').value);
+
+                        if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) {
+                            result = '请输入有效的a, b, c (a ≠ 0)';
+                        } else {
+                            result = '绝对值二次不等式求解复杂，请手动求解 |ax² + bx + c| ? k 通过考虑 expr ≥ 0 和 expr ≤ 0 的情况。';
+                            // 注意: 绝对值二次不等式的完整求解涉及多项式不等式，这里简化提示，因为太复杂。
+                        }
+                    }
+                }
+
+                resultElement.textContent = result;
+            }
+
+            function resetMathCalculator() {
+                document.getElementById('a-value').value = '1';
+                document.getElementById('b-value').value = '0';
+                document.getElementById('c-value').value = '0';
+                document.getElementById('ineq-sign').value = '>';
+                document.getElementById('abs-expr-type').value = 'linear';
+                document.getElementById('abs-a-linear').value = '1';
+                document.getElementById('abs-b-linear').value = '0';
+                document.getElementById('abs-a-quad').value = '1';
+                document.getElementById('abs-b-quad').value = '0';
+                document.getElementById('abs-c-quad').value = '0';
+                document.getElementById('abs-ineq-sign').value = '>';
+                document.getElementById('k-value').value = '0';
+                document.getElementById('math-result').textContent = '选择计算类型';
+                updateMathCalculatorUI();
+            }
+            
             // 初始化
             updateDateCalculatorUI();
+            updateMathCalculatorUI();
         });
     </script>
 </body>
