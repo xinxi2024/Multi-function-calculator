@@ -2,16 +2,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // DOM元素
     const modeBtns = document.querySelectorAll('.mode-btn');
     const calculatorModes = document.querySelectorAll('.calculator-mode');
+    
+    // 标准模式新DOM（表达式+结果）
+    const expressionDisplay = document.querySelector('#standard-mode .expression');
+    const resultDisplay = document.querySelector('#standard-mode .result');
+    
+    // 兼容旧DOM（用于其他模式）
     const previousOperandText = document.querySelectorAll('.previous-operand');
     const currentOperandText = document.querySelectorAll('.current-operand');
 
-    // 标准计算器变量
-    let firstOperand = '';
-    let secondOperand = '';
-    let currentOperation = null;
-    let shouldResetScreen = false;
+    // 标准计算器变量（新）
+    let currentExpression = '0';
+    let needsReset = false;
     let currentMode = 'standard';
-    let pendingFunction = null; // 新增：用于根号、分数、幂
 
     // 程序员计算器变量
     let currentRadix = 16;
@@ -44,267 +47,155 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (mode === 'math') {
                 updateMathCalculatorUI();
             }
-            // 说明书按钮交互
-            const helpBtn = document.getElementById('help-btn');
-            const helpModal = document.getElementById('help-modal');
-            const closeBtn = document.querySelector('.close-btn');
-
-            helpBtn.addEventListener('click', () => {
-                helpModal.classList.remove('hidden');
-            });
-
-            closeBtn.addEventListener('click', () => {
-                helpModal.classList.add('hidden');
-            });
-
-            // 点击遮罩关闭
-            helpModal.addEventListener('click', (e) => {
-                if (e.target === helpModal) {
-                    helpModal.classList.add('hidden');
-                }
-            });
         });
     });
 
-    // 标准计算器按钮事件
+    // ======================
+    // 标准模式：表达式输入
+    // ======================
+    function resetCalculator() {
+        currentExpression = '0';
+        needsReset = false;
+        expressionDisplay.textContent = '0';
+        resultDisplay.textContent = '0';
+    }
+
+    function appendToExpression(symbol) {
+        if (needsReset) {
+            currentExpression = '0';
+            needsReset = false;
+        }
+
+        // 符号映射
+        let mapped = symbol;
+        const mappings = {
+            '√': 'sqrt(',
+            'x^y': '**',
+            '÷': '/',
+            '×': '*',
+            '|x|': 'abs(',
+            'π': 'pi',
+            'e': 'e',
+            'sin': 'sin(',
+            'cos': 'cos(',
+            'tan': 'tan(',
+            'log': 'log(',
+            'ln': 'ln('
+        };
+        if (mappings[symbol] !== undefined) {
+            mapped = mappings[symbol];
+        }
+
+        // 初始状态处理
+        if (currentExpression === '0' && !['+', '-', '*', '/', '(', ')'].includes(mapped)) {
+            currentExpression = mapped;
+        } else {
+            currentExpression += mapped;
+        }
+
+        expressionDisplay.textContent = currentExpression;
+    }
+
+    function evaluateExpression() {
+        if (needsReset) return;
+
+        try {
+            const result = parseMathExpression(currentExpression);
+            resultDisplay.textContent = result;
+            needsReset = true;
+        } catch (e) {
+            resultDisplay.textContent = 'Error';
+            console.error(e);
+        }
+    }
+
+    function deleteLastChar() {
+        if (needsReset) return;
+        if (currentExpression.length > 1) {
+            currentExpression = currentExpression.slice(0, -1);
+        } else {
+            currentExpression = '0';
+        }
+        expressionDisplay.textContent = currentExpression;
+    }
+
+    // 标准模式按钮事件
     document.querySelectorAll('#standard-mode .btn').forEach(button => {
         button.addEventListener('click', () => {
             if (button.classList.contains('number')) {
-                inputNumber(button.textContent);
-            } else if (button.classList.contains('operation')) {
-                inputOperation(button.textContent);
+                appendToExpression(button.textContent);
+            } else if (button.classList.contains('operation') || 
+                       button.classList.contains('func') || 
+                       button.classList.contains('const')) {
+                appendToExpression(button.textContent);
             } else if (button.classList.contains('equals')) {
-                evaluate();
+                evaluateExpression();
             } else if (button.classList.contains('clear')) {
                 resetCalculator();
             } else if (button.classList.contains('delete')) {
-                deleteNumber();
+                deleteLastChar();
             }
         });
     });
 
-    // 程序员计算器按钮事件
-    document.querySelectorAll('#programmer-mode .btn').forEach(button => {
-        button.addEventListener('click', () => {
-            if (button.classList.contains('number') || button.classList.contains('hex')) {
-                inputProgrammerNumber(button.textContent);
-            } else if (button.classList.contains('operation')) {
-                inputProgrammerOperation(button.textContent);
-            } else if (button.classList.contains('equals')) {
-                evaluateProgrammer();
-            } else if (button.classList.contains('clear')) {
-                resetProgrammerCalculator();
-            } else if (button.classList.contains('delete')) {
-                deleteProgrammerNumber();
+    // ======================
+    // 安全表达式解析器（通用）
+    // ======================
+    function parseMathExpression(expr) {
+        if (!expr || !expr.trim()) return NaN;
+
+        let input = expr.trim();
+
+        // 自动将 ^ 替换为 **
+        input = input.replace(/\^/g, '**');
+
+        // 白名单函数和常数替换
+        input = input
+            .replace(/\babs\(/g, 'Math.abs(')
+            .replace(/\bcbrt\(/g, 'Math.cbrt(')
+            .replace(/\bsqrt\(/g, 'Math.sqrt(')
+            .replace(/\blog10\(/g, 'Math.log10(')
+            .replace(/\blog\(/g, 'Math.log10(')   // log 默认为常用对数
+            .replace(/\bln\(/g, 'Math.log(')
+            .replace(/\bsin\(/g, 'Math.sin(')
+            .replace(/\bcos\(/g, 'Math.cos(')
+            .replace(/\btan\(/g, 'Math.tan(')
+            .replace(/\basin\(/g, 'Math.asin(')
+            .replace(/\bacos\(/g, 'Math.acos(')
+            .replace(/\batan\(/g, 'Math.atan(')
+            .replace(/\bpi\b/g, 'Math.PI')
+            .replace(/\be\b/g, 'Math.E');
+
+        try {
+            const fn = new Function('return (' + input + ');');
+            const result = fn();
+            
+            if (typeof result !== 'number' || !isFinite(result)) {
+                throw new Error('结果无效');
             }
-        });
-    });
-
-    // 进制选择事件
-    document.querySelectorAll('input[name="radix"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            currentRadix = parseInt(e.target.value);
-            updateDisplay(currentMode);
-            updateBitDisplay();
-        });
-    });
-
-    // 位长选择事件
-    document.querySelectorAll('input[name="bit-length"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            bitLength = parseInt(e.target.value);
-            updateBitDisplay();
-        });
-    });
-
-    // 日期计算器事件
-    document.getElementById('date-operation').addEventListener('change', updateDateCalculatorUI);
-    document.getElementById('calculate-date').addEventListener('click', calculateDate);
-    document.getElementById('reset-date').addEventListener('click', resetDateCalculator);
-
-    // 数学计算器事件
-    document.getElementById('math-operation').addEventListener('change', updateMathCalculatorUI);
-    document.getElementById('abs-expr-type').addEventListener('change', updateAbsUI);
-    document.getElementById('calculate-math').addEventListener('click', calculateMath);
-    document.getElementById('reset-math').addEventListener('click', resetMathCalculator);
-
-    // 标准计算器函数
-    function resetCalculator() {
-        firstOperand = '';
-        secondOperand = '';
-        currentOperation = null;
-        pendingFunction = null;
-        previousOperandText[0].textContent = '';
-        currentOperandText[0].textContent = '0';
-        shouldResetScreen = false;
-    }
-
-    function inputNumber(number) {
-        if (currentMode !== 'standard') return;
-        if (currentOperandText[0].textContent === '0' || shouldResetScreen) {
-            currentOperandText[0].textContent = number;
-            shouldResetScreen = false;
-        } else {
-            currentOperandText[0].textContent += number;
+            
+            return result;
+        } catch (e) {
+            throw new Error(`"${expr}" 无法计算。示例：sqrt(2), sin(pi/2), log(100), 2**3`);
         }
     }
 
-    function deleteNumber() {
-        if (currentMode !== 'standard') return;
-        currentOperandText[0].textContent = currentOperandText[0].textContent.slice(0, -1);
-        if (currentOperandText[0].textContent === '') {
-            currentOperandText[0].textContent = '0';
-        }
-    }
+    // ======================
+    // 程序员计算器（保持不变）
+    // ======================
+    let firstOperand = '';
+    let secondOperand = '';
+    let currentOperation = null;
+    let shouldResetScreen = false;
+    let pendingFunction = null;
 
-    function inputOperation(operation) {
-        if (currentMode !== 'standard') return;
-
-        const currentOperand = currentOperandText[0].textContent;
-
-        // 平方根 √
-        if (operation === '√') {
-            try {
-                const num = parseFloat(currentOperand);
-                if (num < 0) throw new Error('负数无实平方根');
-                const result = Math.sqrt(num);
-                currentOperandText[0].textContent = result;
-                shouldResetScreen = true;
-            } catch (e) {
-                currentOperandText[0].textContent = 'Error';
-                shouldResetScreen = true;
-            }
-            return;
-        }
-
-        // n次方根
-        if (operation === 'ⁿ√') {
-            firstOperand = currentOperand;
-            pendingFunction = 'nthRoot';
-            previousOperandText[0].textContent = `ⁿ√(${firstOperand})`;
-            shouldResetScreen = true;
-            return;
-        }
-
-        // 分数 a/b
-        if (operation === 'a/b') {
-            firstOperand = currentOperand;
-            pendingFunction = 'fraction';
-            previousOperandText[0].textContent = `${firstOperand} / `;
-            shouldResetScreen = true;
-            return;
-        }
-
-        // 幂 x^y
-        if (operation === 'x^y') {
-            firstOperand = currentOperand;
-            pendingFunction = 'power';
-            previousOperandText[0].textContent = `${firstOperand} ^ `;
-            shouldResetScreen = true;
-            return;
-        }
-
-        // 原有四则运算
-        if (currentOperation !== null) evaluate();
-        firstOperand = currentOperand;
-        currentOperation = operation;
-        previousOperandText[0].textContent = `${firstOperand} ${operation}`;
-        shouldResetScreen = true;
-    }
-
-    function evaluate() {
-        if (currentMode !== 'standard') return;
-
-        // 处理特殊函数
-        if (pendingFunction) {
-            const second = currentOperandText[0].textContent;
-            let result;
-            try {
-                switch (pendingFunction) {
-                    case 'nthRoot':
-                        const radicand = parseFloat(firstOperand);
-                        const n = parseFloat(second);
-                        if (isNaN(radicand) || isNaN(n)) throw new Error('无效输入');
-                        if (n <= 0 || !Number.isInteger(n)) throw new Error('n 必须是正整数');
-                        if (radicand < 0 && n % 2 === 0) throw new Error('偶次根号下不能为负');
-                        result = Math.sign(radicand) * Math.pow(Math.abs(radicand), 1 / n);
-                        break;
-
-                    case 'fraction':
-                        const numerator = parseFloat(firstOperand);
-                        const denominator = parseFloat(second);
-                        if (denominator === 0) throw new Error('分母不能为零');
-                        result = numerator / denominator;
-                        break;
-
-                    case 'power':
-                        const base = parseFloat(firstOperand);
-                        const exponent = parseFloat(second);
-                        result = Math.pow(base, exponent);
-                        if (!isFinite(result)) throw new Error('结果溢出');
-                        break;
-
-                    default:
-                        return;
-                }
-
-                currentOperandText[0].textContent = result;
-                previousOperandText[0].textContent = '';
-                pendingFunction = null;
-                shouldResetScreen = true;
-            } catch (e) {
-                currentOperandText[0].textContent = 'Error';
-                previousOperandText[0].textContent = e.message;
-                pendingFunction = null;
-                shouldResetScreen = true;
-            }
-            return;
-        }
-
-        // 原有四则运算
-        if (currentOperation === null) return;
-        secondOperand = currentOperandText[0].textContent;
-        let result;
-        switch (currentOperation) {
-            case '+':
-                result = parseFloat(firstOperand) + parseFloat(secondOperand);
-                break;
-            case '-':
-                result = parseFloat(firstOperand) - parseFloat(secondOperand);
-                break;
-            case '×':
-                result = parseFloat(firstOperand) * parseFloat(secondOperand);
-                break;
-            case '÷':
-                if (parseFloat(secondOperand) === 0) {
-                    currentOperandText[0].textContent = 'Error';
-                    previousOperandText[0].textContent = '除数不能为零';
-                    shouldResetScreen = true;
-                    currentOperation = null;
-                    return;
-                }
-                result = parseFloat(firstOperand) / parseFloat(secondOperand);
-                break;
-            case '%':
-                result = parseFloat(firstOperand) % parseFloat(secondOperand);
-                break;
-            default:
-                return;
-        }
-        currentOperandText[0].textContent = result;
-        previousOperandText[0].textContent = `${firstOperand} ${currentOperation} ${secondOperand} =`;
-        currentOperation = null;
-        shouldResetScreen = true;
-    }
-
-    // 程序员计算器函数（略作修正）
     function resetProgrammerCalculator() {
         firstOperand = '';
         secondOperand = '';
         currentOperation = null;
         pendingFunction = null;
-        previousOperandText[1].textContent = '';
-        currentOperandText[1].textContent = '0';
+        if (previousOperandText[1]) previousOperandText[1].textContent = '';
+        if (currentOperandText[1]) currentOperandText[1].textContent = '0';
         shouldResetScreen = false;
         updateBitDisplay();
     }
@@ -318,20 +209,24 @@ document.addEventListener('DOMContentLoaded', function () {
             16: /[0-9A-F]/i
         };
         if (!validDigits[currentRadix].test(number)) return;
-        if (currentOperandText[1].textContent === '0' || shouldResetScreen) {
-            currentOperandText[1].textContent = number;
+        const display = currentOperandText[1];
+        if (!display) return;
+        if (display.textContent === '0' || shouldResetScreen) {
+            display.textContent = number;
             shouldResetScreen = false;
         } else {
-            currentOperandText[1].textContent += number;
+            display.textContent += number;
         }
         updateBitDisplay();
     }
 
     function deleteProgrammerNumber() {
         if (currentMode !== 'programmer') return;
-        currentOperandText[1].textContent = currentOperandText[1].textContent.slice(0, -1);
-        if (currentOperandText[1].textContent === '') {
-            currentOperandText[1].textContent = '0';
+        const display = currentOperandText[1];
+        if (!display) return;
+        display.textContent = display.textContent.slice(0, -1);
+        if (display.textContent === '') {
+            display.textContent = '0';
         }
         updateBitDisplay();
     }
@@ -339,16 +234,22 @@ document.addEventListener('DOMContentLoaded', function () {
     function inputProgrammerOperation(operation) {
         if (currentMode !== 'programmer') return;
         if (currentOperation !== null) evaluateProgrammer();
-        firstOperand = currentOperandText[1].textContent;
+        const display = currentOperandText[1];
+        if (!display) return;
+        firstOperand = display.textContent;
         currentOperation = operation;
-        previousOperandText[1].textContent = `${firstOperand} ${operation}`;
+        if (previousOperandText[1]) {
+            previousOperandText[1].textContent = `${firstOperand} ${operation}`;
+        }
         shouldResetScreen = true;
     }
 
     function evaluateProgrammer() {
         if (currentMode !== 'programmer') return;
         if (currentOperation === null) return;
-        secondOperand = currentOperandText[1].textContent;
+        const display = currentOperandText[1];
+        if (!display) return;
+        secondOperand = display.textContent;
         const num1 = parseInt(firstOperand, currentRadix);
         const num2 = parseInt(secondOperand, currentRadix);
         let result;
@@ -380,8 +281,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const bitmask = (1n << BigInt(bitLength)) - 1n;
         result = Number(BigInt(result) & bitmask);
-        currentOperandText[1].textContent = result.toString(currentRadix).toUpperCase();
-        previousOperandText[1].textContent = `${firstOperand} ${currentOperation} ${secondOperand} =`;
+        display.textContent = result.toString(currentRadix).toUpperCase();
+        if (previousOperandText[1]) {
+            previousOperandText[1].textContent = `${firstOperand} ${currentOperation} ${secondOperand} =`;
+        }
         currentOperation = null;
         shouldResetScreen = true;
         updateBitDisplay();
@@ -389,7 +292,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateBitDisplay() {
         if (currentMode !== 'programmer') return;
-        const decimalValue = parseInt(currentOperandText[1].textContent, currentRadix);
+        const display = currentOperandText[1];
+        if (!display) return;
+        const decimalValue = parseInt(display.textContent, currentRadix);
         let binaryStr = decimalValue.toString(2).padStart(bitLength, '0');
         let formattedBinary = '';
         for (let i = 0; i < binaryStr.length; i++) {
@@ -403,12 +308,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateDisplay(mode) {
         if (mode === 'programmer') {
-            const decimalValue = parseInt(currentOperandText[1].textContent, currentRadix);
-            currentOperandText[1].textContent = decimalValue.toString(currentRadix).toUpperCase();
+            const display = currentOperandText[1];
+            if (!display) return;
+            const decimalValue = parseInt(display.textContent, currentRadix);
+            display.textContent = decimalValue.toString(currentRadix).toUpperCase();
         }
     }
 
-    // 日期计算器函数
+    // ======================
+    // 日期计算器（保持不变）
+    // ======================
     function updateDateCalculatorUI() {
         const operation = document.getElementById('date-operation').value;
         const daysGroup = document.getElementById('days-group');
@@ -465,7 +374,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('date-result').textContent = '选择日期和操作';
     }
 
-    // 数学计算器函数
+    // ======================
+    // 数学计算器（保持不变）
+    // ======================
     function updateMathCalculatorUI() {
         const operation = document.getElementById('math-operation').value;
         const quadraticCoeffs = document.getElementById('quadratic-coeffs');
@@ -496,49 +407,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('abs-quadratic-coeffs').style.display = absType === 'quadratic' ? 'grid' : 'none';
     }
 
-    // 在 calculateMath 函数开头，新增一个安全解析函数
-    function parseMathExpression(expr) {
-        if (!expr || !expr.trim()) return NaN;
-
-        let input = expr.trim();
-
-        // 自动将 ^ 替换为 **
-        input = input.replace(/\^/g, '**');
-
-        // 白名单函数和常数替换（顺序很重要！）
-        input = input
-            .replace(/\babs\(/g, 'Math.abs(')
-            .replace(/\bcbrt\(/g, 'Math.cbrt(')
-            .replace(/\bsqrt\(/g, 'Math.sqrt(')
-            .replace(/\blog10\(/g, 'Math.log10(')
-            .replace(/\blog\(/g, 'Math.log10(')   // log 默认为常用对数
-            .replace(/\bln\(/g, 'Math.log(')
-            .replace(/\bsin\(/g, 'Math.sin(')
-            .replace(/\bcos\(/g, 'Math.cos(')
-            .replace(/\btan\(/g, 'Math.tan(')
-            .replace(/\basin\(/g, 'Math.asin(')
-            .replace(/\bacos\(/g, 'Math.acos(')
-            .replace(/\batan\(/g, 'Math.atan(')
-            .replace(/\bpi\b/g, 'Math.PI')
-            .replace(/\be\b/g, 'Math.E');
-
-        // 移除原来的“安全字符”正则检查！它太严格了。
-
-        try {
-            // 使用 Function 执行（无全局作用域，相对安全）
-            const fn = new Function('return (' + input + ');');
-            const result = fn();
-
-            if (typeof result !== 'number' || !isFinite(result)) {
-                throw new Error('结果无效');
-            }
-
-            return result;
-        } catch (e) {
-            throw new Error(`"${expr}" 无法计算。示例：sqrt(2), sin(pi/2), log(100), 2**3`);
-        }
-    }
-    // 修改 calculateMath 函数（替换原有版本）
     function calculateMath() {
         const operation = document.getElementById('math-operation').value;
         const resultElement = document.getElementById('math-result');
@@ -577,7 +445,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     const discriminant = b * b - 4 * a * c;
                     if (discriminant < 0) {
-                        // 无实根，抛物线不与x轴相交
                         if ((a > 0 && (sign === '>' || sign === '>=')) || (a < 0 && (sign === '<' || sign === '<='))) {
                             result = '解集：全体实数 ℝ';
                         } else {
@@ -634,7 +501,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         else if (sign === '>=') result = '全体实数 ℝ';
                         else if (sign === '<=') result = `x = ${(-b / a).toFixed(6)}`;
                     } else {
-                        // |ax + b| ? k  =>  -k ? ax + b ? k （注意符号）
                         const leftVal = (-b - k) / a;
                         const rightVal = (-b + k) / a;
                         const L = Math.min(leftVal, rightVal).toFixed(6);
@@ -651,7 +517,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                 } else {
-                    // 二次绝对值：提示复杂，建议手动
                     result = '⚠️ 一元二次绝对值不等式需分段讨论，建议手动分析或使用图形法。';
                 }
             }
@@ -677,6 +542,29 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('k-value').value = '0';
         document.getElementById('math-result').textContent = '选择计算类型';
         updateMathCalculatorUI();
+    }
+
+    // ======================
+    // 说明书按钮交互
+    // ======================
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const closeBtn = document.querySelector('.close-btn');
+
+    if (helpBtn && helpModal && closeBtn) {
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            helpModal.classList.add('hidden');
+        });
+
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.classList.add('hidden');
+            }
+        });
     }
 
     // 初始化

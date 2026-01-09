@@ -19,42 +19,56 @@
         </div>
 
         <!-- 标准计算器 -->
+        <!-- 标准计算器 -->
         <div class="calculator-mode" id="standard-mode">
             <div class="display">
-                <div class="previous-operand"></div>
-                <div class="current-operand">0</div>
+                <div class="expression">0</div> <!-- 新增：显示完整表达式 -->
+                <div class="result">0</div> <!-- 原 current-operand 改名 -->
             </div>
+            <!-- 按钮保持不变（但需微调） -->
             <div class="buttons">
+                <!-- 所有按钮保留，新增 ( 和 ) 按钮 -->
                 <button class="btn clear">AC</button>
                 <button class="btn delete">DEL</button>
-                <button class="btn operation">%</button>
-                <button class="btn operation">÷</button>
+                <button class="btn operation">(</button>
+                <button class="btn operation">)</button>
 
                 <button class="btn number">7</button>
                 <button class="btn number">8</button>
                 <button class="btn number">9</button>
-                <button class="btn operation">×</button>
+                <button class="btn operation">÷</button>
 
                 <button class="btn number">4</button>
                 <button class="btn number">5</button>
                 <button class="btn number">6</button>
-                <button class="btn operation">-</button>
+                <button class="btn operation">×</button>
 
                 <button class="btn number">1</button>
                 <button class="btn number">2</button>
                 <button class="btn number">3</button>
-                <button class="btn operation">+</button>
+                <button class="btn operation">-</button>
 
                 <button class="btn number">0</button>
                 <button class="btn number">.</button>
-                <button class="btn operation">x^y</button>
+                <button class="btn operation">+</button>
                 <button class="btn equals">=</button>
 
-                <!-- 新增功能行 -->
-                <button class="btn operation">√</button>
-                <button class="btn operation">ⁿ√</button>
-                <button class="btn operation">a/b</button>
-                <button class="btn"></button> <!-- 占位 -->
+                <!-- 函数行 -->
+                <button class="btn func">sin</button>
+                <button class="btn func">cos</button>
+                <button class="btn func">tan</button>
+                <button class="btn func">log</button>
+
+                <button class="btn func">ln</button>
+                <button class="btn func">√</button>
+                <button class="btn const">π</button>
+                <button class="btn const">e</button>
+
+                <!-- 高级操作 -->
+                <button class="btn operation">x^y</button>
+                <button class="btn operation">|x|</button>
+                <button class="btn"></button>
+                <button class="btn"></button>
             </div>
         </div>
 
@@ -209,6 +223,20 @@
 <div id="help-modal" class="help-modal hidden">
     <div class="help-content">
         <span class="close-btn">&times;</span>
+        <h2>标准模式</h2>
+        <ul>
+            <li><strong>标准模式支持：</strong></li>
+            <li><code>sin, cos, tan</code> —— 三角函数（弧度）</li>
+            <li><code>log</code> —— 常用对数（底10），<code>ln</code> —— 自然对数</li>
+            <li><code>√</code> —— 平方根，<code>ⁿ√</code> —— n次方根</li>
+            <li><code>x^y</code> —— 幂运算，<code>a/b</code> —— 分数</li>
+            <li><code>|x|</code> —— 绝对值</li>
+            <li><code>π</code>, <code>e</code> —— 数学常数</li>
+            <li>表达式示例：<code>sin(π/2)</code> 需分步输入：先输 <code>π</code> → <code>÷</code> → <code>2</code> → <code>=</code> →
+                <code>sin</code>
+            </li>
+        </ul>
+        <p><strong>注意</strong>：标准模式是“立即执行”风格，不支持括号。复杂表达式请在数学模块输入。</p>
         <h2>数学表达式输入指南</h2>
         <p>在数学模块中，您可输入以下表达式：</p>
         <ul>
